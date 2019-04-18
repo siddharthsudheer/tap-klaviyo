@@ -1,0 +1,193 @@
+{
+  "type": [
+    "object"
+  ],
+  "properties": {
+    "status": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "updated": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "from_name": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "status_id": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "object": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "num_recipients": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "lists": {
+      "type": [
+        "null",
+        "array"
+      ],
+      "items": {
+        "type": [
+          "null",
+          "object"
+        ],
+        "properties": {
+          "updated": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "person_count": {
+            "type": [
+              "null",
+              "integer"
+            ]
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "created": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "object": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "list_type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "folder": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "properties": {
+              "object": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "id": {
+                "type": [
+                  "null",
+                  "integer"
+                ]
+              },
+              "name": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              }
+            }
+          },
+          "id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      }
+    },
+    "is_segmented": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "send_time": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "id": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "name": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "campaign_type": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "sent_at": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "format": "date-time"
+    },
+    "created": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "format": "date-time"
+    },
+    "status_label": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "from_email": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "subject": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "template_id": {
+      "type": [
+        "null",
+        "string"
+      ]
+    }
+  }
+}

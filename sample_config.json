@@ -1,0 +1,7 @@
+{
+  "start_date": "2019-01-01T00:00:00Z",
+  "end_date": "2019-01-31T00:00:00Z",
+  "account_id": "some_customer_name",
+  "api_key": "pk_s0m3th1NgH3rE",
+  "autoselect_all_for_discover": false
+}

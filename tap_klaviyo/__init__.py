@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 import os
-import datetime
 import json
 import time
-import math
 import singer
 from singer import utils
 from singer import metadata

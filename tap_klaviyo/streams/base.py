@@ -1,23 +1,17 @@
-import math
-import functools
-import datetime
-from datetime import datetime, timedelta
-import sys
-import simplejson
 import singer
 from singer import utils
-from tap_klaviyo.context import Context
+from singer import Transformer
+import backoff
+import requests
 import asyncio
 import aiohttp
 from urllib.parse import urlencode
-from singer import Transformer
-import requests
-import backoff
+from tap_klaviyo.context import Context
+
 
 LOGGER = singer.get_logger()
-
-MAX_RETRIES = 5
 KLAVIYO_BASE_URL = 'https://a.klaviyo.com/api'
+MAX_RETRIES = 5
 RESULTS_PER_PAGE = 100
 
 
@@ -74,7 +68,7 @@ class Stream():
     @retry_pattern(backoff.expo, max_tries=MAX_RETRIES, factor=10)
     def call_api(self, params):
         url = KLAVIYO_BASE_URL + self.endpoint
-        LOGGER.info("GET {}?{}".format(url, urlencode({**params, 'api_key': 'pk_XXXXXXX'})))
+        LOGGER.info("GET {}?{}".format(url, urlencode({**params, 'api_key': 'pk_{}'.format(Context.config.get('account_id', "XXXX"))})))
         resp = requests.get(url, params=params)
         resp.raise_for_status()
         result = resp.json()
@@ -104,8 +98,6 @@ class Stream():
             else:
                 self.update_bookmark(utils.strftime(end_date), bookmark_key="latest_pull_date")
                 break
-
-            
 
 
     def sync(self):

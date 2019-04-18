@@ -1,17 +1,19 @@
 import singer
 from singer import utils
-from tap_klaviyo.context import Context
-from tap_klaviyo.streams.base import Stream, KLAVIYO_BASE_URL, MAX_RETRIES, retry_pattern
-from datetime import datetime, timedelta
+from datetime import timedelta
+import backoff
 import asyncio
 import aiohttp
 from urllib.parse import urlencode
-import backoff
+from tap_klaviyo.context import Context
+from tap_klaviyo.streams.base import Stream, KLAVIYO_BASE_URL, MAX_RETRIES, retry_pattern
 
 
 LOGGER = singer.get_logger()
 DATE_RANGE_CHUNK_SIZE = 10
 DATE_FMT = "%Y-%m-%d"
+ASYNCIO_JOBS_LIMIT = 100
+
 
 class CampaignInsights(Stream):
     name = 'campaign_insights'
@@ -39,52 +41,60 @@ class CampaignInsights(Stream):
                 final[m['name']] = {'metric_id': m['id'], 'metric_name': m['name'], **self.campaign_insights_metrics[m['name']]}
         return final
 
-    def get_campaigns(self):
+    def get_campaigns(self, start_date, end_date):
         stream = Context.stream_objects['campaigns']()
         campaigns = stream.sync()
-        return campaigns
+        _dt_obj = lambda d: utils.strptime_with_tz(d)
+        _within_dates = lambda x: x['status'] == 'sent' and _dt_obj(x['sent_at']) >= start_date and _dt_obj(x['sent_at']) <= end_date
+        final_campaigns = list(filter(lambda x: _within_dates(x), campaigns))
+        return final_campaigns
 
     
     def get_job_configs(self, start_date, end_date, campaigns, metrics):
-        date_chunks = get_chunks(start_date, end_date, DATE_RANGE_CHUNK_SIZE)
-
-        jobs = []
+        date_chunks = get_date_chunks(start_date, end_date, DATE_RANGE_CHUNK_SIZE)
+        final_jobs = []
+        job_chunk = []
         for dt in reversed(date_chunks):
             for c in campaigns:
-                if c['status'] == 'sent':
-                    for v in metrics.values():
-                        for insight_name, measurement in v['insights'].items():
-                            jobs.append({
-                                'campaign_id': c['id'],
-                                'metric_id': v['metric_id'],
-                                'metric_name': v['metric_name'],
-                                'insight_name': insight_name,
-                                'endpoint': "/v1/metric/{mid}/export".format(mid=v['metric_id']),
-                                'query_params': {
-                                    'api_key': Context.config['api_key'],
-                                    'start_date': dt['start_date'],
-                                    'end_date': dt['end_date'],
-                                    'measurement': measurement,
-                                    'unit': 'day',
-                                    'where': '[["{w}","=","{cid}"]]'.format(w=v['where'], cid=c['id'])
-                                }
-                            })
-        return jobs
+                for v in metrics.values():
+                    for insight_name, measurement in v['insights'].items():
+                        if len(job_chunk) >= ASYNCIO_JOBS_LIMIT:
+                            final_jobs.append(job_chunk)
+                            job_chunk = []
+                        
+                        job_chunk.append({
+                            'campaign_id': c['id'],
+                            'metric_id': v['metric_id'],
+                            'metric_name': v['metric_name'],
+                            'insight_name': insight_name,
+                            'endpoint': "/v1/metric/{mid}/export".format(mid=v['metric_id']),
+                            'query_params': {
+                                'api_key': Context.config['api_key'],
+                                'start_date': dt['start_date'],
+                                'end_date': dt['end_date'],
+                                'measurement': measurement,
+                                'unit': 'day',
+                                'where': '[["{w}","=","{cid}"]]'.format(w=v['where'], cid=c['id'])
+                            }
+                        })
+        return final_jobs
 
     def get_objects(self):
-        metrics = self.get_metrics()
-        campaigns = self.get_campaigns()
         start_date = self.get_bookmark()
         config_end_date = Context.config.get("end_date", False)
         end_date = utils.strptime_with_tz(config_end_date) if config_end_date else utils.now().replace(microsecond=0)
+        metrics = self.get_metrics()
+        campaigns = self.get_campaigns(start_date, end_date)
         
         jobs = self.get_job_configs(start_date, end_date, campaigns, metrics)
-        objects = GetAsync(jobs).Run()
+
+        for jobs_chunk in jobs:
+            objects = GetAsync(jobs_chunk).Run()
+            
+            for obj in objects:
+                yield obj
         
-        for obj in objects:
-            yield obj
-        
-        self.update_bookmark(utils.strftime(end_date))
+        self.update_bookmark(utils.strftime(end_date), bookmark_key="insight_date")
 
 
 Context.stream_objects['campaign_insights'] = CampaignInsights
@@ -94,7 +104,7 @@ Context.stream_objects['campaign_insights'] = CampaignInsights
 # HELPERS FOR CAMPAIGN INSIGHTS
 ########################################################################################
 
-def get_chunks(st, ed, num_days=1):
+def get_date_chunks(st, ed, num_days=1):
     ranges = []
     
     while st < ed:
@@ -117,7 +127,7 @@ class GetAsync():
         headers = {**headers, "Connection": "close"} if headers else {"Connection": "close"}
         async with aiohttp.ClientSession(raise_for_status=True) as session:
             async with session.get(url=url, headers=headers, params=params, raise_for_status=True) as response:
-                LOGGER.info("GET {}?{}".format(url, urlencode({**params, 'api_key': 'pk_XXXXXXX'})))
+                LOGGER.info("GET {}?{}".format(url, urlencode({**params, 'api_key': 'pk_{}'.format(Context.config.get('account_id', "XXXX"))})))
                 if response.status == 200:
                     return await response.json()
 
@@ -132,6 +142,7 @@ class GetAsync():
                     "campaign_id": job['campaign_id'],
                     "metric_id": job['metric_id'],
                     "metric_name": job['metric_name'],
+                    "metric_segment": met['segment'],
                     "insight_date": d["date"],
                     "insight_name": job['insight_name'],
                     "insight_value": d['values'][0]

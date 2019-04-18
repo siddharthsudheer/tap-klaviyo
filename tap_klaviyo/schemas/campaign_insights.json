@@ -21,6 +21,12 @@
         "string"
       ]
     },
+    "metric_segment": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
     "insight_date": {
       "type": [
         "null",

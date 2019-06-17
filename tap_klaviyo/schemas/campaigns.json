@@ -3,6 +3,11 @@
     "object"
   ],
   "properties": {
+    "account_id": {
+      "type": [
+        "string"
+      ]
+    },
     "status": {
       "type": [
         "null",

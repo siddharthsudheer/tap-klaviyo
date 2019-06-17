@@ -19,7 +19,7 @@ class CampaignInsights(Stream):
     name = 'campaign_insights'
     endpoint = "/v1/metric/{metric_id}/export"
     replication_key = "insight_date"
-    key_properties = ['campaign_id', 'metric_id', 'insight_date']
+    key_properties = ['account_id', 'campaign_id', 'metric_id', 'insight_date']
 
     campaign_insights_metrics = {
         "Placed Order": {"insights":{"Revenue":"value", "Total Conversion":"count", "Unique Conversion":"unique"}, "where":"$attributed_message"},

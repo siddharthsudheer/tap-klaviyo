@@ -9,7 +9,7 @@ from singer import Transformer
 from tap_klaviyo.context import Context
 import tap_klaviyo.streams # Load stream objects into Context
 
-REQUIRED_CONFIG_KEYS = ["start_date", "api_key"]
+REQUIRED_CONFIG_KEYS = ["account_id", "api_key", "start_date"]
 
 LOGGER = singer.get_logger()
 
@@ -82,6 +82,12 @@ def discover():
     return {'streams': streams}
 
 
+def add_synthetic_keys(rec):
+    return {
+        "account_id": Context.config.get("account_id"),
+        **rec
+    }
+
 def sync():
     # Emit all schemas first so we have them for child streams
     for stream in Context.catalog["streams"]:
@@ -115,6 +121,7 @@ def sync():
             for rec in stream.sync():
                 extraction_time = singer.utils.now()
                 record_metadata = metadata.to_map(catalog_entry['metadata'])
+                rec = add_synthetic_keys(rec)
                 rec = transformer.transform(rec, stream.schema, record_metadata)
                 singer.write_record(stream_id,
                                     rec,

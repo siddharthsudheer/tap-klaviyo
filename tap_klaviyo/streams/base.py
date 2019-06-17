@@ -39,7 +39,7 @@ class Stream():
     replication_key = None
     endpoint = None
     schema = None
-    key_properties = ['id']
+    key_properties = ['account_id', 'id']
     result_key = "data"
 
     def get_bookmark(self):

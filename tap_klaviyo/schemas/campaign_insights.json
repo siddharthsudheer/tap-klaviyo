@@ -3,6 +3,11 @@
     "object"
   ],
   "properties": {
+    "account_id": {
+      "type": [
+        "string"
+      ]
+    },
     "campaign_id": {
       "type": [
         "null",
